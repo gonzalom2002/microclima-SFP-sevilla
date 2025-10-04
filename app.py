@@ -5,7 +5,7 @@ import json
 
 st.set_page_config(page_title="Microclima en Sevilla", layout="wide")
 
-st.title("🌿 Microclima de invernadero automatizado. "NASA Space Apps" (4 octubre 2025)")
+st.title("🌿 Microclima de invernadero automatizado. NASA Space Apps (4 octubre 2025)")
 st.markdown("Con el uso de datos en tiempo real que nos ofrece de la NASA, podremos automatizar el microclima del invernadero del Colegio internacional de Sevilla San Francisco de Paula, cuyo objetivo es cultivar vegetales esenciales para la sobrevicencia de 10 personas, simulando una base fuera de nuestro planeta.")
 
 def cargar_datos(nombre_archivo):
