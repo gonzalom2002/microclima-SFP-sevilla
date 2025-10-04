@@ -1,27 +1,68 @@
 import streamlit as st
-import plotly.io as pio
-import plotly.graph_objects as go
+import requests
+import pandas as pd
+import plotly.express as px
+from datetime import datetime, timedelta
 
-st.set_page_config(page_title="Microclima en Sevilla", layout="wide")
+# Configuración de la página
+st.set_page_config(page_title="Microclima en Sevilla en Tiempo Real", layout="wide")
 
 # Título y bienvenida
-st.title("🌱 Simulación de Microclima para Invernadero Escolar")
+st.title("🌱 Microclima en Sevilla - Datos en Tiempo Real desde NASA POWER")
 st.markdown("""
 Bienvenidos a esta aplicación interactiva desarrollada por estudiantes del colegio como parte del proyecto de sostenibilidad y tecnología aplicada.  
-Aquí simulamos las condiciones climáticas de **Sevilla en septiembre de 2025** para entender cómo afectan al cultivo de vegetales esenciales para la supervivencia humana.  
-Este entorno virtual nos permite visualizar datos como **temperatura**, **humedad relativa** y **radiación solar**, y aprender cómo controlar un microclima en un invernadero escolar.
+Aquí consultamos datos meteorológicos reales desde la API de **NASA POWER** para visualizar las condiciones actuales en **Sevilla, España**, y entender cómo afectan al cultivo de vegetales esenciales para la supervivencia humana.  
 """)
 
-# Función para cargar y mostrar gráficos
-def mostrar_grafico(nombre_archivo, titulo):
-    fig = pio.read_json(nombre_archivo)
-    fig.update_layout(title=titulo)
-    st.plotly_chart(fig, use_container_width=True)
+# Coordenadas de Sevilla
+lat, lon = 37.3886, -5.9953
 
-# Mostrar los gráficos
-mostrar_grafico("grafico_temperatura.json", "🌡️ Temperatura diaria en Sevilla (Septiembre 2025)")
-mostrar_grafico("grafico_humedad.json", "💧 Humedad relativa diaria en Sevilla (Septiembre 2025)")
-mostrar_grafico("grafico_radiacion.json", "☀️ Radiación solar diaria en Sevilla (Septiembre 2025)")
+# Fechas para el rango de datos (últimos 7 días)
+end_date = datetime.utcnow().date()
+start_date = end_date - timedelta(days=6)
+
+# Parámetros meteorológicos: temperatura, humedad, radiación solar
+parameters = "T2M,RH2M,ALLSKY_SFC_SW_DWN"
+
+# URL de la API de NASA POWER
+url = (
+    f"https://power.larc.nasa.gov/api/temporal/daily/point?"
+    f"start={start_date.strftime('%Y%m%d')}&end={end_date.strftime('%Y%m%d')}"
+    f"&latitude={lat}&longitude={lon}"
+    f"&parameters={parameters}&community=AG&format=JSON"
+)
+
+# Solicitud a la API
+response = requests.get(url)
+
+if response.status_code == 200:
+    data = response.json()
+    records = data["properties"]["parameter"]
+    dates = list(records["T2M"].keys())
+
+    # Crear DataFrame
+    df = pd.DataFrame({
+        "Fecha": pd.to_datetime(dates),
+        "🌡️ Temperatura (°C)": list(records["T2M"].values()),
+        "💧 Humedad relativa (%)": list(records["RH2M"].values()),
+        "☀️ Radiación solar (W/m²)": list(records["ALLSKY_SFC_SW_DWN"].values())
+    })
+
+    # Mostrar gráficos
+    st.subheader("🌡️ Temperatura diaria")
+    fig_temp = px.line(df, x="Fecha", y="🌡️ Temperatura (°C)", markers=True)
+    st.plotly_chart(fig_temp, use_container_width=True)
+
+    st.subheader("💧 Humedad relativa diaria")
+    fig_hum = px.line(df, x="Fecha", y="💧 Humedad relativa (%)", markers=True)
+    st.plotly_chart(fig_hum, use_container_width=True)
+
+    st.subheader("☀️ Radiación solar diaria")
+    fig_rad = px.line(df, x="Fecha", y="☀️ Radiación solar (W/m²)", markers=True)
+    st.plotly_chart(fig_rad, use_container_width=True)
+
+else:
+    st.error("No se pudo obtener datos en tiempo real desde la API de NASA POWER.")
 
 # Sección final del proyecto
 st.markdown("""
@@ -29,7 +70,7 @@ st.markdown("""
 
 ### 🔧 Próximo paso del proyecto escolar
 
-En la siguiente fase, adaptaremos estos datos simulados al control físico de un **invernadero escolar** mediante prototipos construidos con:
+En la siguiente fase, adaptaremos estos datos reales al control físico de un **invernadero escolar** mediante prototipos construidos con:
 
 - **Arduino** como unidad de control
 - **Sensores de humedad ambiental y del suelo**
