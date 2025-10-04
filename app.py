@@ -1,76 +1,43 @@
 import streamlit as st
+import plotly.io as pio
 import plotly.graph_objects as go
-import requests
-import time
-import pandas as pd
 
 st.set_page_config(page_title="Microclima en Sevilla", layout="wide")
 
-st.title("🌿 v3 Microclima de invernadero automatizado. NASA Space Apps (4 octubre 2025)")
-st.markdown("Con datos en tiempo real de la NASA POWER API, mostramos la simulación meteorológica de Sevilla. Los gráficos se actualizan cada segundo.")
+# Título y bienvenida
+st.title("🌱 Simulación de Microclima para Invernadero Escolar")
+st.markdown("""
+Bienvenidos a esta aplicación interactiva desarrollada por estudiantes del colegio como parte del proyecto de sostenibilidad y tecnología aplicada.  
+Aquí simulamos las condiciones climáticas de **Sevilla en septiembre de 2025** para entender cómo afectan al cultivo de vegetales esenciales para la supervivencia humana.  
+Este entorno virtual nos permite visualizar datos como **temperatura**, **humedad relativa** y **radiación solar**, y aprender cómo controlar un microclima en un invernadero escolar.
+""")
 
-API_URL = "https://power.larc.nasa.gov/api/temporal/hourly/point?parameters=T2M,WS2M,RH2M&community=AG&longitude=-5.9845&latitude=37.3891&start=20251004&end=20251004&format=JSON"
-REFRESH_INTERVAL = 1  # seconds
+# Función para cargar y mostrar gráficos
+def mostrar_grafico(nombre_archivo, titulo):
+    fig = pio.read_json(nombre_archivo)
+    fig.update_layout(title=titulo)
+    st.plotly_chart(fig, use_container_width=True)
 
-def fetch_nasa_power():
-    try:
-        response = requests.get(API_URL)
-        response.raise_for_status()
-        data = response.json()
-        # Parse the hourly data
-        hours = list(data["properties"]["parameter"]["T2M"].keys())
-        temp = list(data["properties"]["parameter"]["T2M"].values())
-        wind = list(data["properties"]["parameter"]["WS2M"].values())
-        hum = list(data["properties"]["parameter"]["RH2M"].values())
-        df = pd.DataFrame({
-            "Hora": hours,
-            "Temperatura (°C)": temp,
-            "Viento (m/s)": wind,
-            "Humedad (%)": hum,
-        })
-        return df
-    except Exception as e:
-        st.error(f"Error obteniendo datos de NASA POWER: {e}")
-        return pd.DataFrame({"Hora": [], "Temperatura (°C)": [], "Viento (m/s)": [], "Humedad (%)": []})
+# Mostrar los gráficos
+mostrar_grafico("grafico_temperatura.json", "🌡️ Temperatura diaria en Sevilla (Septiembre 2025)")
+mostrar_grafico("grafico_humedad.json", "💧 Humedad relativa diaria en Sevilla (Septiembre 2025)")
+mostrar_grafico("grafico_radiacion.json", "☀️ Radiación solar diaria en Sevilla (Septiembre 2025)")
 
-# Real-time simulation: update every second
-if "last_run" not in st.session_state or time.time() - st.session_state["last_run"] > REFRESH_INTERVAL:
-    st.session_state["df"] = fetch_nasa_power()
-    st.session_state["last_run"] = time.time()
-    st.experimental_rerun()
+# Sección final del proyecto
+st.markdown("""
+---
 
-df = st.session_state.get("df", pd.DataFrame({"Hora": [], "Temperatura (°C)": [], "Viento (m/s)": [], "Humedad (%)": []}))
+### 🔧 Próximo paso del proyecto escolar
 
-if not df.empty:
-    # Find the value with the fastest change in one hour
-    df["ΔTemp"] = df["Temperatura (°C)"].diff().abs()
-    df["ΔViento"] = df["Viento (m/s)"].diff().abs()
-    df["ΔHumedad"] = df["Humedad (%)"].diff().abs()
-    fastest_var = max(df["ΔTemp"].max(), df["ΔViento"].max(), df["ΔHumedad"].max())
-    if fastest_var == df["ΔViento"].max():
-        var_name = "Viento (m/s)"
-    elif fastest_var == df["ΔTemp"].max():
-        var_name = "Temperatura (°C)"
-    else:
-        var_name = "Humedad (%)"
-    st.info(f"La variable meteorológica que cambia más rápido durante la hora es: **{var_name}**, con una variación máxima de {fastest_var:.2f} unidades.")
+En la siguiente fase, adaptaremos estos datos simulados al control físico de un **invernadero escolar** mediante prototipos construidos con:
 
-    # Plotting
-    fig_temp = go.Figure()
-    fig_temp.add_trace(go.Scatter(x=df["Hora"], y=df["Temperatura (°C)"], mode="lines+markers", name="Temperatura", line=dict(color="red")))
-    fig_temp.update_layout(title="🌡️ Temperatura horaria", xaxis_title="Hora", yaxis_title="°C")
-    st.plotly_chart(fig_temp, use_container_width=True)
+- **Arduino** como unidad de control
+- **Sensores de humedad ambiental y del suelo**
+- **Sensores de temperatura**
+- **Servomotores** para abrir o cerrar ventilaciones
+- **Ventiladores y calefactores** para regular el clima interno
 
-    fig_wind = go.Figure()
-    fig_wind.add_trace(go.Scatter(x=df["Hora"], y=df["Viento (m/s)"], mode="lines+markers", name="Viento", line=dict(color="blue")))
-    fig_wind.update_layout(title="💨 Viento horario", xaxis_title="Hora", yaxis_title="m/s")
-    st.plotly_chart(fig_wind, use_container_width=True)
+El objetivo es crear un sistema automatizado que mantenga las condiciones óptimas para cultivar vegetales como tomates, espinacas, patatas y legumbres, suficientes para alimentar a 10 personas.
 
-    fig_hum = go.Figure()
-    fig_hum.add_trace(go.Scatter(x=df["Hora"], y=df["Humedad (%)"], mode="lines+markers", name="Humedad", line=dict(color="green")))
-    fig_hum.update_layout(title="💧 Humedad horaria", xaxis_title="Hora", yaxis_title="%")
-    st.plotly_chart(fig_hum, use_container_width=True)
-
-    st.markdown("✅ Esta simulación en tiempo real te ayuda a ajustar ventilación, riego y luz artificial en el invernadero, según los datos meteorológicos más cambiantes.")
-else:
-    st.warning("No se pudieron obtener datos de NASA POWER para la visualización.")
+Este proyecto combina ciencia, tecnología y sostenibilidad, y nos prepara para desafíos reales como el diseño de hábitats autosuficientes en la Tierra o en futuras misiones espaciales 🚀🌍
+""")
