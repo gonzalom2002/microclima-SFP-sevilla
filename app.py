@@ -5,13 +5,14 @@ import plotly.express as px
 from datetime import datetime, timedelta
 
 # Configuración de la página
-st.set_page_config(page_title="Microclima en Sevilla en Tiempo Real", layout="wide")
+st.set_page_config(page_title="Microclima en Sevilla", layout="wide")
 
 # Título y bienvenida
-st.title("🌱 Microclima en Sevilla - Datos en Tiempo Real desde NASA POWER")
+st.title("🌱 Simulación de Microclima para Invernadero Escolar")
 st.markdown("""
 Bienvenidos a esta aplicación interactiva desarrollada por estudiantes del colegio como parte del proyecto de sostenibilidad y tecnología aplicada.  
 Aquí consultamos datos meteorológicos reales desde la API de **NASA POWER** para visualizar las condiciones actuales en **Sevilla, España**, y entender cómo afectan al cultivo de vegetales esenciales para la supervivencia humana.  
+Este entorno virtual nos permite visualizar datos como **temperatura**, **humedad relativa** y **radiación solar**, y aprender cómo controlar un microclima en un invernadero escolar.
 """)
 
 # Coordenadas de Sevilla
