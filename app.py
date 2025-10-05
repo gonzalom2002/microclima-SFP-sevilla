@@ -1,85 +1,45 @@
-import streamlit as st
-import requests
-import pandas as pd
-import plotly.express as px
-from datetime import datetime, timedelta
+try:
+    response = requests.get(url, timeout=10)  # Añade timeout para evitar bloqueos largos
+    response.raise_for_status()  # Lanza excepción si el código de estado no es 200
 
-# Configuración de la página
-st.set_page_config(page_title="Microclima en Sevilla", layout="wide")
-
-# Título y bienvenida
-st.title("🌱 Simulación de Microclima para Invernadero Escolar")
-st.markdown("""
-Bienvenidos a esta aplicación interactiva desarrollada por estudiantes del colegio como parte del proyecto de sostenibilidad y tecnología aplicada.  
-Aquí consultamos datos meteorológicos reales desde la API de **NASA POWER** para visualizar las condiciones actuales en **Sevilla, España**, y entender cómo afectan al cultivo de vegetales esenciales para la supervivencia humana.  
-Este entorno virtual nos permite visualizar datos como **temperatura**, **humedad relativa** y **radiación solar**, y aprender cómo controlar un microclima en un invernadero escolar.
-""")
-
-# Coordenadas de Sevilla
-lat, lon = 37.3886, -5.9953
-
-# Fechas para el rango de datos (últimos 7 días)
-end_date = datetime.utcnow().date()
-start_date = end_date - timedelta(days=6)
-
-# Parámetros meteorológicos: temperatura, humedad, radiación solar
-parameters = "T2M,RH2M,ALLSKY_SFC_SW_DWN"
-
-# URL de la API de NASA POWER
-url = (
-    f"https://power.larc.nasa.gov/api/temporal/daily/point?"
-    f"start={start_date.strftime('%Y%m%d')}&end={end_date.strftime('%Y%m%d')}"
-    f"&latitude={lat}&longitude={lon}"
-    f"&parameters={parameters}&community=AG&format=JSON"
-)
-
-# Solicitud a la API
-response = requests.get(url)
-
-if response.status_code == 200:
     data = response.json()
-    records = data["properties"]["parameter"]
-    dates = list(records["T2M"].keys())
 
-    # Crear DataFrame
-    df = pd.DataFrame({
-        "Fecha": pd.to_datetime(dates),
-        "🌡️ Temperatura (°C)": list(records["T2M"].values()),
-        "💧 Humedad relativa (%)": list(records["RH2M"].values()),
-        "☀️ Radiación solar (W/m²)": list(records["ALLSKY_SFC_SW_DWN"].values())
-    })
+    # Verifica que los datos esperados estén presentes
+    if "properties" in data and "parameter" in data["properties"]:
+        records = data["properties"]["parameter"]
+        dates = list(records["T2M"].keys())
 
-    # Mostrar gráficos
-    st.subheader("🌡️ Temperatura diaria")
-    fig_temp = px.line(df, x="Fecha", y="🌡️ Temperatura (°C)", markers=True)
-    st.plotly_chart(fig_temp, use_container_width=True)
+        df = pd.DataFrame({
+            "Fecha": pd.to_datetime(dates),
+            "🌡️ Temperatura (°C)": list(records["T2M"].values()),
+            "💧 Humedad relativa (%)": list(records["RH2M"].values()),
+            "☀️ Radiación solar (W/m²)": list(records["ALLSKY_SFC_SW_DWN"].values())
+        })
 
-    st.subheader("💧 Humedad relativa diaria")
-    fig_hum = px.line(df, x="Fecha", y="💧 Humedad relativa (%)", markers=True)
-    st.plotly_chart(fig_hum, use_container_width=True)
+        # Mostrar gráficos
+        st.subheader("🌡️ Temperatura diaria")
+        fig_temp = px.line(df, x="Fecha", y="🌡️ Temperatura (°C)", markers=True)
+        st.plotly_chart(fig_temp, use_container_width=True)
 
-    st.subheader("☀️ Radiación solar diaria")
-    fig_rad = px.line(df, x="Fecha", y="☀️ Radiación solar (W/m²)", markers=True)
-    st.plotly_chart(fig_rad, use_container_width=True)
+        st.subheader("💧 Humedad relativa diaria")
+        fig_hum = px.line(df, x="Fecha", y="💧 Humedad relativa (%)", markers=True)
+        st.plotly_chart(fig_hum, use_container_width=True)
 
-else:
-    st.error("No se pudo obtener datos en tiempo real desde la API de NASA POWER.")
+        st.subheader("☀️ Radiación solar diaria")
+        fig_rad = px.line(df, x="Fecha", y="☀️ Radiación solar (W/m²)", markers=True)
+        st.plotly_chart(fig_rad, use_container_width=True)
 
-# Sección final del proyecto
-st.markdown("""
----
+    else:
+        st.warning("La respuesta de la API no contiene los datos esperados. Intenta más tarde o revisa los parámetros.")
 
-### 🔧 Próximo paso del proyecto escolar
+except requests.exceptions.Timeout:
+    st.error("⏱️ La solicitud a la API tardó demasiado. Verifica tu conexión o intenta más tarde.")
 
-En la siguiente fase, adaptaremos estos datos reales al control físico de un **invernadero escolar** mediante prototipos construidos con:
+except requests.exceptions.HTTPError as err:
+    st.error(f"❌ Error HTTP al consultar la API: {err}")
 
-- **Arduino** como unidad de control
-- **Sensores de humedad ambiental y del suelo**
-- **Sensores de temperatura**
-- **Servomotores** para abrir o cerrar ventilaciones
-- **Ventiladores y calefactores** para regular el clima interno
+except requests.exceptions.RequestException as err:
+    st.error(f"⚠️ Error de conexión con la API: {err}")
 
-El objetivo es crear un sistema automatizado que mantenga las condiciones óptimas para cultivar vegetales como tomates, espinacas, patatas y legumbres, suficientes para alimentar a 10 personas.
-
-Este proyecto combina ciencia, tecnología y sostenibilidad, y nos prepara para desafíos reales como el diseño de hábitats autosuficientes en la Tierra o en futuras misiones espaciales 🚀🌍
-""")
+except Exception as e:
+    st.error(f"🚨 Ocurrió un error inesperado: {e}")
